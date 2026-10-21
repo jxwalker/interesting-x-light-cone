@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Interesting X · Light Cone: Minkowski spacetime you can hold</title>
+    <meta name="description" content="Drag one slider and watch space and time shear like scissors: clocks disagree, 'now' tilts and fireworks swap order, yet the glass light cone and the spacetime interval never change. Ride the rocket and come home younger." />
+    <meta name="theme-color" content="#070a10" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M4 4 L28 4 L16 16 L28 28 L4 28 L16 16 Z' fill='none' stroke='%236fe7ff' stroke-width='2.5' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="stage"></div>
+
+      <header class="intro" id="intro">
+        <h1>Light Cone</h1>
+        <p class="sub">Minkowski spacetime you can hold</p>
+        <p class="hint">Drag ‘Your speed’: space and time shear, the light cone doesn't.</p>
+        <p class="credit credit-top">
+          Inspired by <a href="https://x.com/cosmosarcive/status/2112278864730693884" target="_blank" rel="noopener">@cosmosarcive</a> ·
+          <a href="https://en.wikipedia.org/wiki/Minkowski_space" target="_blank" rel="noopener">Minkowski space</a>
+        </p>
+        <button class="help" id="btn-help" type="button" aria-controls="explain" aria-expanded="false" aria-label="What am I looking at?"><i aria-hidden="true">?</i><span>What am I looking at?</span></button>
+      </header>
+
+      <div class="badge" id="badge" hidden>simple mode (no WebGL)</div>
+      <div class="chip-float" id="chip" role="status" aria-live="polite" hidden></div>
+      <div class="toast" id="events-toast" role="status" aria-live="polite" hidden><span id="events-toast-text">Cleared all fireworks.</span><button id="events-undo" class="btn chip" type="button">Undo</button></div>
+
+      <section class="panel dock" id="dock" aria-label="Controls">
+        <p class="caption" id="caption" aria-live="polite"><i class="dot" aria-hidden="true"></i><span id="caption-text">You're at rest with Home. Up is time, the floor is space, the cone is light.</span></p>
+
+        <div class="ctl main-ctl">
+          <div class="ctl-row"><label class="cap" for="speed">Your speed <span class="tag">v</span></label><span class="mono val" id="speed-val">0.00 c</span></div>
+          <input id="speed" type="range" min="-0.95" max="0.95" step="0.005" value="0" aria-label="Your speed relative to Home, as a fraction of light speed (negative = to the left)" />
+          <div class="ticks" aria-hidden="true"><span>← 0.95 c</span><span>Home</span><span>0.95 c →</span></div>
+          <p class="desc"><span class="long">Time-stretch (γ): how much slower a moving clock ticks, from your point of view.</span><span class="short">γ: how much slower a moving clock ticks, to you.</span></p>
+        </div>
+
+        <div class="ctl main-ctl">
+          <div class="ctl-row"><label class="cap" for="time">Time <span class="tag">Home's clock</span></label><span class="mono val" id="time-val">0.0</span></div>
+          <input id="time" type="range" min="-8" max="12" step="0.01" value="0" aria-label="Time: moves Home's 'now' sheet up and down" />
+          <p class="desc">Slides the glass ‘now’ sheet: all of space at one moment, for Home.</p>
+        </div>
+
+        <div class="ctl">
+          <span class="cap">Ride with</span>
+          <div class="seg" role="group" aria-label="Ride with: jump to a traveller's frame">
+            <button id="ride-home" class="segb on" type="button" aria-pressed="true">Home</button>
+            <button id="ride-out" class="segb" type="button" aria-pressed="false">Rocket (out)</button>
+            <button id="ride-back" class="segb" type="button" aria-pressed="false">Rocket (back)</button>
+          </div>
+          <p class="desc ticks-line">Ticks: <b class="home" id="m-home">10.0</b> Home · <b class="rocket" id="m-rocket">6.0</b> Rocket<span class="long">, the time each actually lived through on the trip.</span><span class="short">: time each lived through.</span></p>
+        </div>
+
+        <div class="pair" id="pair" data-state="pair">
+          <div class="pair-head"><span class="cap">Between <b class="ab">A</b> and <b class="ab">B</b></span><span class="type" id="m-type" data-readout="type">spacelike</span></div>
+          <div class="pair-full" id="pair-full">
+            <div class="cells">
+              <div class="cell" data-readout="dt"><span class="lbl">Time apart</span><span class="mono big" id="m-dt">2.00</span></div>
+              <div class="cell" data-readout="dr"><span class="lbl">Distance apart</span><span class="mono big" id="m-dr">5.00</span></div>
+              <div class="cell inv" data-readout="s2"><span class="lbl">Interval <span class="tag">s²</span></span><span class="mono big" id="m-s2">−21.00</span></div>
+            </div>
+            <p class="verdict" id="pair-verdict" aria-live="polite">These can't affect each other (spacelike): drag ‘Your speed’ left past 0.40 c and their order flips.</p>
+            <p class="desc"><span class="long">Time and distance apart are what you measure; they depend on your speed. The interval is time² minus distance²: everyone gets the same answer.</span><span class="short">Time &amp; distance depend on your speed. Interval = time² − distance²: the same for everyone.</span></p>
+          </div>
+          <div class="pair-empty" id="pair-empty" hidden>
+            <p class="empty-lead" id="pair-empty-lead">No fireworks yet:</p>
+            <ol class="steps" id="pair-steps">
+              <li data-step="1">Press <b>Add fireworks</b></li>
+              <li data-step="2">Tap the floor twice</li>
+              <li data-step="3">Drag <b>Your speed</b></li>
+            </ol>
+            <button id="events-restore" class="btn chip" type="button" title="Bring back the example pair A and B">Restore example</button>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button id="events-add" class="btn add" type="button" aria-pressed="false" title="Then tap the floor (the glass ‘now’ sheet) to place a firework"><span class="main-l"><i class="led" aria-hidden="true"></i>Add fireworks</span> <span class="sub-l">(tap floor)</span></button>
+          <button id="events-clear" class="btn" type="button" title="Remove all fireworks (you can undo)">Clear</button>
+          <button id="btn-advanced" class="btn" type="button" aria-expanded="false" aria-controls="adv">Advanced</button>
+        </div>
+      </section>
+
+      <aside class="panel adv" id="adv" hidden aria-label="Advanced">
+        <div class="adv-head">
+          <span class="cap">Advanced</span>
+          <button class="x" id="btn-adv-close" type="button" aria-label="Close advanced">×</button>
+        </div>
+        <div class="presets">
+          <button class="btn chip" id="preset-twin" type="button">Twin paradox</button>
+          <button class="btn chip" id="preset-flip" type="button">Order flip</button>
+          <button class="btn chip" id="preset-cause" type="button">Cause and effect</button>
+        </div>
+        <label class="ctl">
+          <span class="ctl-row"><span class="cap">Rocket's speed <span class="tag">twin trip</span></span><span class="mono" id="rocket-speed-val">0.80 c</span></span>
+          <input id="rocket-speed" type="range" min="0.1" max="0.95" step="0.01" value="0.8" aria-label="Rocket's speed for the twin trip" />
+          <span class="desc">How fast the rocket flies out and back.</span>
+        </label>
+        <label class="ctl">
+          <span class="ctl-row"><span class="cap">Trip length <span class="tag">Home's clock</span></span><span class="mono" id="trip-val">10</span></span>
+          <input id="trip" type="range" min="2" max="12" step="0.5" value="10" aria-label="Trip length in Home's time" />
+          <span class="desc">How long Home waits for the rocket to come back.</span>
+        </label>
+        <label class="ctl">
+          <span class="ctl-row"><span class="cap">Boost direction <span class="tag">θ</span></span><span class="mono" id="boost-angle-val">0°</span></span>
+          <input id="boost-angle" type="range" min="0" max="360" step="1" value="0" aria-label="Direction you move in, on the floor plane" />
+          <span class="desc">Which way across the floor you move. 0° is along x, like the rocket.</span>
+        </label>
+        <div class="checks">
+          <label class="check"><input id="show-grid" type="checkbox" checked /><span><span class="cap">Space-time grid</span><span class="desc">Home's silver lattice, sheared by your speed.</span></span></label>
+          <label class="check"><input id="show-ghost" type="checkbox" checked /><span><span class="cap">Ghost of the Home grid</span><span class="desc">Where it was before the boost (your own square grid).</span></span></label>
+          <label class="check"><input id="show-hyper" type="checkbox" /><span><span class="cap">Invariant hyperbolas</span><span class="desc">Shells of equal interval from here-and-now. A and B slide along them.</span></span></label>
+          <label class="check"><input id="show-rod" type="checkbox" /><span><span class="cap">Glass rod</span><span class="desc">4 long in the rocket's frame; you measure it shorter.</span></span></label>
+          <label class="check"><input id="flat-view" type="checkbox" /><span><span class="cap">Flat view</span><span class="desc">Side-on t-x diagram, the textbook picture.</span></span></label>
+        </div>
+        <div class="facts">
+          <div><span class="lbl">Rapidity <span class="tag">φ = atanh v</span></span><span class="mono" id="m-phi">0.00</span></div>
+          <div><span class="lbl">A and B swap order at</span><span class="mono" id="m-flip">0.40 c</span></div>
+          <div><span class="lbl">Rod you measure <span class="tag">L₀/γ</span></span><span class="mono" id="m-rod">4.00</span></div>
+        </div>
+        <div class="combine">
+          <span class="cap">Combine two speeds</span>
+          <span class="desc">A ship at u fires a probe at v (relative to the ship). The probe's speed is (u+v)/(1+uv), never past light, while rapidities simply add.</span>
+          <label class="ctl-row"><span class="lbl">u</span><input id="combine-u" type="range" min="-0.95" max="0.95" step="0.01" value="0.6" aria-label="First speed u" /><span class="mono" id="combine-u-val">0.60</span></label>
+          <label class="ctl-row"><span class="lbl">v</span><input id="combine-v" type="range" min="-0.95" max="0.95" step="0.01" value="0.6" aria-label="Second speed v" /><span class="mono" id="combine-v-val">0.60</span></label>
+          <p class="mono combine-out" id="combine-out">0.60 ⊕ 0.60 = 0.88 c</p>
+          <canvas id="combine-plot" class="plot" aria-label="Velocities and rapidities of the two speeds and their combination"></canvas>
+        </div>
+      </aside>
+
+      <section class="panel explain-card" id="explain" role="dialog" aria-labelledby="explain-title" hidden>
+        <div class="explain-head">
+          <h2 id="explain-title">What you're looking at</h2>
+          <button class="x" id="btn-explain-x" type="button" aria-label="Close explanation">×</button>
+        </div>
+        <p>A map of space and time in one object. The brass floor is space, and up is time. The glass cone is every path light can take from here and now. The glowing threads are two clocks: one that stays home and one on a round-trip rocket.</p>
+        <p><b>Why it matters:</b> in 1908 Hermann Minkowski showed that space and time are one structure. People moving differently slice it at different angles, so they disagree about distances, durations and even which of two events happened first. But everyone agrees on the light cone and on one combined number, the spacetime interval.</p>
+        <p class="try"><span>What to try</span></p>
+        <ol class="try-steps">
+          <li>Drag <b>Your speed</b>: the grid shears, the glass cone stays put.</li>
+          <li>Watch beads <b>A</b> and <b>B</b>: past 0.40 c their order flips.</li>
+          <li>Press <b>Add fireworks</b>, tap the floor twice, and test your own pair.</li>
+          <li>Ride the <b>Rocket</b>: it comes home with fewer ticks.</li>
+        </ol>
+        <button class="btn primary" id="btn-explain-ok" type="button">Got it</button>
+      </section>
+
+      <footer class="credit credit-foot">
+        Inspired by <a href="https://x.com/cosmosarcive/status/2112278864730693884" target="_blank" rel="noopener">@cosmosarcive</a>'s post on Minkowski spacetime ·
+        <a href="https://en.wikipedia.org/wiki/Minkowski_space" target="_blank" rel="noopener">Minkowski space (Wikipedia)</a>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
